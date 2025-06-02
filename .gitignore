@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# SwiftPM build folder
+.build/
+
+# Xcode
+*.xcworkspace
+*.xcodeproj
+DerivedData/
+
+# User settings
+*.xcuserstate
+*.xcuserdata/
+
+# Logs
+*.log
+
+# Swift Package Manager
+Packages/
+
+# Other
+.idea/
+.vscode/
+
+# Novakey logs
+log.txt
