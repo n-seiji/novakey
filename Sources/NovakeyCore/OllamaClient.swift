@@ -17,7 +17,9 @@ public class OllamaClient {
         // return "ダミー変換結果: \(input)"
         // #else
         let prompt = """
-        以下の文字列を日本語に変換してください。漢字、ひらがな、カタカナを適切に使用してください：
+        Convert the following string into Japanese. Your response must only be the converted text, without any additional words or explanations.
+        
+        [Input string here]
         \(input)
         """
         
