@@ -16,6 +16,7 @@ struct Novakey: ParsableCommand {
     var debug = false
     
     func run() throws {
+        // ログ設定
         if let logFile = logFile {
             // ログファイルに追記モードで書き込む
             if !FileManager.default.fileExists(atPath: logFile) {
@@ -36,8 +37,15 @@ struct Novakey: ParsableCommand {
             }
         }
         
+        let logger = Logger(label: "com.novakey.main")
+        logger.info("Novakeyを起動しました")
+        
+        // キーボードモニターの初期化と開始
         let monitor = KeyboardMonitor()
         monitor.startMonitoring()
+        
+        logger.info("キーボード監視を開始しました")
+        print("キーボード監視を開始しました。終了するには Ctrl+C を押してください。")
         
         // メインループを実行
         RunLoop.main.run()
