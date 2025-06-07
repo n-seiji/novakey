@@ -13,6 +13,77 @@ public class KeyboardMonitor {
     private let inputBuffer: InputBuffer
     private let ollamaClient: OllamaClient
     
+    // ローマ字からひらがなへの変換マップ
+    private let romajiToHiragana: [String: String] = [
+        // 基本的な母音
+        "a": "あ", "i": "い", "u": "う", "e": "え", "o": "お",
+        
+        // か行
+        "ka": "か", "ki": "き", "ku": "く", "ke": "け", "ko": "こ",
+        "ga": "が", "gi": "ぎ", "gu": "ぐ", "ge": "げ", "go": "ご",
+        
+        // さ行
+        "sa": "さ", "si": "し", "shi": "し", "su": "す", "se": "せ", "so": "そ",
+        "za": "ざ", "zi": "じ", "ji": "じ", "zu": "ず", "ze": "ぜ", "zo": "ぞ",
+        
+        // た行
+        "ta": "た", "ti": "ち", "chi": "ち", "tu": "つ", "tsu": "つ", "te": "て", "to": "と",
+        "da": "だ", "di": "ぢ", "du": "づ", "de": "で", "do": "ど",
+        
+        // な行
+        "na": "な", "ni": "に", "nu": "ぬ", "ne": "ね", "no": "の",
+        
+        // は行
+        "ha": "は", "hi": "ひ", "fu": "ふ", "he": "へ", "ho": "ほ",
+        "ba": "ば", "bi": "び", "bu": "ぶ", "be": "べ", "bo": "ぼ",
+        "pa": "ぱ", "pi": "ぴ", "pu": "ぷ", "pe": "ぺ", "po": "ぽ",
+        
+        // ま行
+        "ma": "ま", "mi": "み", "mu": "む", "me": "め", "mo": "も",
+        
+        // や行
+        "ya": "や", "yu": "ゆ", "yo": "よ",
+        
+        // ら行
+        "ra": "ら", "ri": "り", "ru": "る", "re": "れ", "ro": "ろ",
+        
+        // わ行
+        "wa": "わ", "wo": "を", "n": "ん",
+        
+        // 小文字
+        "xa": "ぁ", "xi": "ぃ", "xu": "ぅ", "xe": "ぇ", "xo": "ぉ",
+        "xya": "ゃ", "xyu": "ゅ", "xyo": "ょ",
+        "xtu": "っ", "xtsu": "っ",
+        
+        // 特殊な組み合わせ
+        "kya": "きゃ", "kyu": "きゅ", "kyo": "きょ",
+        "gya": "ぎゃ", "gyu": "ぎゅ", "gyo": "ぎょ",
+        "sha": "しゃ", "shu": "しゅ", "sho": "しょ",
+        "ja": "じゃ", "ju": "じゅ", "jo": "じょ",
+        "cha": "ちゃ", "chu": "ちゅ", "cho": "ちょ",
+        "nya": "にゃ", "nyu": "にゅ", "nyo": "にょ",
+        "hya": "ひゃ", "hyu": "ひゅ", "hyo": "ひょ",
+        "bya": "びゃ", "byu": "びゅ", "byo": "びょ",
+        "pya": "ぴゃ", "pyu": "ぴゅ", "pyo": "ぴょ",
+        "mya": "みゃ", "myu": "みゅ", "myo": "みょ",
+        "rya": "りゃ", "ryu": "りゅ", "ryo": "りょ"
+    ]
+    
+    // キーコードから文字への変換マップ
+    private let keyCodeToChar: [Int64: String] = [
+        0: "a", 1: "s", 2: "d", 3: "f", 4: "h", 5: "g",
+        6: "z", 7: "x", 8: "c", 9: "v", 11: "b", 12: "q",
+        13: "w", 14: "e", 15: "r", 16: "y", 17: "t",
+        18: "1", 19: "2", 20: "3", 21: "4", 22: "6",
+        23: "5", 24: "=", 25: "9", 26: "7", 27: "-",
+        28: "8", 29: "0", 30: "]", 31: "o", 32: "u",
+        33: "[", 34: "i", 35: "p", 37: "l", 38: "j",
+        39: "'", 40: "k", 41: ";", 42: "\\", 43: ",",
+        44: "/", 45: "n", 46: "m", 47: ".", 50: "`"
+    ]
+    
+    private var currentInput: String = ""
+    
     public init(inputBuffer: InputBuffer = InputBuffer(), ollamaClient: OllamaClient = OllamaClient()) {
         self.inputBuffer = inputBuffer
         self.ollamaClient = ollamaClient
@@ -21,13 +92,11 @@ public class KeyboardMonitor {
     public func startMonitoring() {
         guard !isMonitoring else { return }
         
-        // アクセシビリティ権限の確認
         if !AXIsProcessTrusted() {
             logger.error("アクセシビリティ権限が必要です")
             return
         }
         
-        // イベントタップの作成
         let eventMask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue)
         eventTap = CGEvent.tapCreate(
             tap: .cghidEventTap,
@@ -46,11 +115,9 @@ public class KeyboardMonitor {
             return
         }
         
-        // イベントタップを実行ループに追加
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
         CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
         
-        // イベントタップを有効化
         CGEvent.tapEnable(tap: eventTap, enable: true)
         
         isMonitoring = true
@@ -78,20 +145,21 @@ public class KeyboardMonitor {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
         
-        // 修飾キーの状態を取得
         let isShift = flags.contains(.maskShift)
         let isControl = flags.contains(.maskControl)
         let isOption = flags.contains(.maskAlternate)
         let isCommand = flags.contains(.maskCommand)
         
-        // アクティブなアプリケーションの情報を取得
         if let activeApp = NSWorkspace.shared.frontmostApplication {
             let appName = activeApp.localizedName ?? "Unknown"
             
-            // キー入力を文字列に変換
             if type == .keyDown {
-                if let keyString = convertKeyCodeToString(keyCode, flags: flags) {
-                    inputBuffer.append(keyString)
+                if let char = convertKeyCodeToChar(keyCode, flags: flags) {
+                    currentInput += char
+                    if let hiragana = convertRomajiToHiragana(currentInput) {
+                        inputBuffer.append(hiragana)
+                        currentInput = ""
+                    }
                 }
             }
             
@@ -105,31 +173,33 @@ public class KeyboardMonitor {
         return Unmanaged.passRetained(event)
     }
     
-    private func convertKeyCodeToString(_ keyCode: Int64, flags: CGEventFlags) -> String? {
-        // 基本的なキーコードから文字への変換
-        let keyMap: [Int64: String] = [
-            0: "a", 1: "s", 2: "d", 3: "f", 4: "h", 5: "g",
-            6: "z", 7: "x", 8: "c", 9: "v", 11: "b", 12: "q",
-            13: "w", 14: "e", 15: "r", 16: "y", 17: "t",
-            18: "1", 19: "2", 20: "3", 21: "4", 22: "6",
-            23: "5", 24: "=", 25: "9", 26: "7", 27: "-",
-            28: "8", 29: "0", 30: "]", 31: "o", 32: "u",
-            33: "[", 34: "i", 35: "p", 37: "l", 38: "j",
-            39: "'", 40: "k", 41: ";", 42: "\\", 43: ",",
-            44: "/", 45: "n", 46: "m", 47: ".", 50: "`",
-            65: ".", 67: "*", 69: "+", 71: "CLEAR",
-            75: "/", 76: "ENTER", 78: "-", 81: "=",
-            82: "0", 83: "1", 84: "2", 85: "3", 86: "4",
-            87: "5", 88: "6", 89: "7", 91: "8", 92: "9"
-        ]
-        
-        if let baseChar = keyMap[keyCode] {
-            if flags.contains(.maskShift) {
-                return baseChar.uppercased()
-            }
-            return baseChar
+    private func convertKeyCodeToChar(_ keyCode: Int64, flags: CGEventFlags) -> String? {
+        // 修飾キーが押されている場合は変換しない
+        if flags.contains(.maskShift) || flags.contains(.maskControl) || 
+           flags.contains(.maskAlternate) || flags.contains(.maskCommand) {
+            return nil
         }
         
-        return nil
+        return keyCodeToChar[keyCode]
+    }
+    
+    private func convertRomajiToHiragana(_ input: String) -> String? {
+        // 入力が空の場合は変換しない
+        if input.isEmpty {
+            return nil
+        }
+        
+        // 最長のマッチを探す
+        var maxLength = 0
+        var result: String? = nil
+        
+        for (romaji, hiragana) in romajiToHiragana {
+            if input.hasSuffix(romaji) && romaji.count > maxLength {
+                maxLength = romaji.count
+                result = hiragana
+            }
+        }
+        
+        return result
     }
 } 

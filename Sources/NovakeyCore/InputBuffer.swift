@@ -1,5 +1,6 @@
 import Foundation
 import Logging
+import AppKit
 
 public class InputBuffer {
     private let logger = Logger(label: "com.novakey.inputbuffer")
@@ -33,6 +34,11 @@ public class InputBuffer {
             do {
                 let convertedText = try await ollamaClient.convertToJapanese(currentBuffer)
                 logger.info("変換結果: \(convertedText)")
+                
+                // クリップボードに変換結果をコピー
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(convertedText, forType: .string)
             } catch {
                 logger.error("変換に失敗しました: \(error.localizedDescription)")
             }
