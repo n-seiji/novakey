@@ -5,10 +5,12 @@ public class OllamaClient {
     private let logger = Logger(label: "com.novakey.ollamaclient")
     private let baseURL: URL
     private let model: String
+    private let textProcessor: TextProcessor
     
     public init(baseURL: URL = URL(string: "http://localhost:11434")!, model: String = "gemma3:1b") {
         self.baseURL = baseURL
         self.model = model
+        self.textProcessor = TextProcessor()
     }
     
     public func convertToJapanese(_ input: String) async throws -> String {
@@ -16,12 +18,14 @@ public class OllamaClient {
         // #if DEBUG
         // return "ダミー変換結果: \(input)"
         // #else
-        let prompt = """
-        Convert the following string into Japanese. Your response must only be the converted text, without any additional words or explanations.
         
-        [Input string here]
-        \(input)
-        """
+        // テキストを処理
+        let processedText = textProcessor.processText(input)
+        logger.debug("処理後のテキスト: \(processedText)")
+        
+        // プロンプトを生成
+        let prompt = textProcessor.generatePrompt(processedText)
+        logger.debug("生成されたプロンプト: \(prompt)")
         
         let requestBody: [String: Any] = [
             "model": model,
@@ -43,6 +47,7 @@ public class OllamaClient {
         
         let decoder = JSONDecoder()
         let result = try decoder.decode(OllamaResponse.self, from: data)
+        logger.debug("LLMからの応答: \(result.response)")
         return result.response
         // #endif
     }
