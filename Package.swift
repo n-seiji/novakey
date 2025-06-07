@@ -7,8 +7,7 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "novakey", targets: ["Novakey"]),
-        .library(name: "NovakeyCore", targets: ["NovakeyCore"])
+        .executable(name: "novakey", targets: ["Novakey"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.3"),
