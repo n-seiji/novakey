@@ -32,13 +32,12 @@ public class InputBuffer {
         
         Task {
             do {
-                let convertedText = try await ollamaClient.convertToJapanese(currentBuffer)
-                logger.info("変換結果: \(convertedText)")
+                // let convertedText = try await ollamaClient.convertToJapanese(currentBuffer)
+                logger.info("to ひらがない: \(currentBuffer)")
+
+                let convertedText = try await ollamaClient.sendLLM(currentBuffer)
+                logger.info("to 漢字: \(currentBuffer)")
                 
-                // クリップボードに変換結果をコピー
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setString(convertedText, forType: .string)
             } catch {
                 logger.error("変換に失敗しました: \(error.localizedDescription)")
             }

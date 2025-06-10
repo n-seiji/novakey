@@ -83,6 +83,9 @@ public class KeyboardMonitor {
     ]
     
     private var currentInput: String = ""
+    private var lastInputTime: Date = Date()
+    private let conversionDelay: TimeInterval = 2.0
+    private var conversionTimer: Timer?
     
     public init(inputBuffer: InputBuffer = InputBuffer(), ollamaClient: OllamaClient = OllamaClient()) {
         self.inputBuffer = inputBuffer
@@ -156,9 +159,17 @@ public class KeyboardMonitor {
             if type == .keyDown {
                 if let char = convertKeyCodeToChar(keyCode, flags: flags) {
                     currentInput += char
-                    if let hiragana = convertRomajiToHiragana(currentInput) {
-                        inputBuffer.append(hiragana)
-                        currentInput = ""
+                    lastInputTime = Date()
+                    
+                    // 変換トリガー文字のチェック
+                    if char == "." || char == "," {
+                        convertAndFlushInput()
+                    } else {
+                        // 変換タイマーのリセット
+                        conversionTimer?.invalidate()
+                        conversionTimer = Timer.scheduledTimer(withTimeInterval: conversionDelay, repeats: false) { [weak self] _ in
+                            self?.convertAndFlushInput()
+                        }
                     }
                 }
             }
@@ -189,17 +200,49 @@ public class KeyboardMonitor {
             return nil
         }
         
-        // 最長のマッチを探す
-        var maxLength = 0
-        var result: String? = nil
+        logger.info("input: \(input)")
         
-        for (romaji, hiragana) in romajiToHiragana {
-            if input.hasSuffix(romaji) && romaji.count > maxLength {
-                maxLength = romaji.count
-                result = hiragana
+        // 入力文字列を先頭から順に変換
+        var result = ""
+        var remaining = input.lowercased()
+        
+        while !remaining.isEmpty {
+            var found = false
+            var maxLength = 0
+            var matchedHiragana: String? = nil
+            
+            // 最長のマッチを探す（3文字、2文字、1文字の順で確認）
+            for length in (1...3).reversed() {
+                if remaining.count >= length {
+                    let prefix = String(remaining.prefix(length))
+                    if let hiragana = romajiToHiragana[prefix] {
+                        maxLength = length
+                        matchedHiragana = hiragana
+                        found = true
+                        break
+                    }
+                }
+            }
+            
+            if found, let hiragana = matchedHiragana {
+                result += hiragana
+                remaining = String(remaining.dropFirst(maxLength))
+            } else {
+                // マッチするものが見つからない場合は、最初の1文字をそのまま追加
+                result += String(remaining.prefix(1))
+                remaining = String(remaining.dropFirst(1))
             }
         }
         
-        return result
+        return result.isEmpty ? nil : result
+    }
+    
+    private func convertAndFlushInput() {
+        guard !currentInput.isEmpty else { return }
+        
+        if let hiragana = convertRomajiToHiragana(currentInput) {
+            inputBuffer.append(hiragana)
+        }
+        currentInput = ""
     }
 } 
