@@ -11,40 +11,12 @@ public class OllamaClient {
         self.model = model
     }
     
-    public func convertToJapanese(_ input: String) async throws -> String {
-        // 開発中はダミー実装を使用
-        // #if DEBUG
-        // return "ダミー変換結果: \(input)"
-        // #else
-        let prompt = """
-        Convert the following string into Japanese. Your response must only be the converted text, without any additional words or explanations.
-        
-        [Input string here]
-        \(input)
-        """
-        
-        let requestBody: [String: Any] = [
-            "model": model,
-            "prompt": prompt,
-            "stream": false
-        ]
-        
-        var request = URLRequest(url: baseURL.appendingPathComponent("api/generate"))
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw NSError(domain: "OllamaClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "APIリクエストに失敗しました"])
-        }
-        
-        let decoder = JSONDecoder()
-        let result = try decoder.decode(OllamaResponse.self, from: data)
-        return result.response
-        // #endif
+    public func sendLLM(_ input: String) async throws -> String {
+        let url = baseURL.appendingPathComponent("api/generate")
+        let request = URLRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(OllamaResponse.self, from: data)
+        return response.response
     }
 }
 
