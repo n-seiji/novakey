@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.novakey.inputmethod</string>
+    <key>CFBundleName</key>
+    <string>Novakey</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>InputMethodConnectionControllerClass</key>
+    <string>$(PRODUCT_MODULE_NAME).InputController</string>
+    <key>InputMethodServerControllerClass</key>
+    <string>$(PRODUCT_MODULE_NAME).InputController</string>
+    <key>tsInputMethodCharacterRepertoireKey</key>
+    <array>
+        <string>Hiragana</string>
+        <string>Katakana</string>
+        <string>Kanji</string>
+    </array>
+    <key>tsInputMethodIconFileKey</key>
+    <string>icon.tiff</string>
+</dict>
+</plist> 

@@ -7,6 +7,11 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
+        .library(
+            name: "NovakeyIM",
+            type: .dynamic,
+            targets: ["NovakeyIM"]
+        ),
         .executable(name: "novakey", targets: ["Novakey"])
     ],
     dependencies: [
@@ -14,13 +19,20 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0")
     ],
     targets: [
+        .target(
+            name: "NovakeyIM",
+            dependencies: ["NovakeyCore"],
+            path: "Sources/NovakeyIM",
+            exclude: ["Info.plist"]
+        ),
         .executableTarget(
             name: "Novakey",
             dependencies: [
                 "NovakeyCore",
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser")
-            ]
+            ],
+            path: "Sources/Novakey"
         ),
         .target(
             name: "NovakeyCore",
