@@ -95,8 +95,10 @@ public class KeyboardMonitor {
     public func startMonitoring() {
         guard !isMonitoring else { return }
         
+        // アクセシビリティ権限の確認
         if !AXIsProcessTrusted() {
             logger.error("アクセシビリティ権限が必要です")
+            print("アクセシビリティ権限が必要です。システム環境設定 > プライバシーとセキュリティ > アクセシビリティで権限を付与してください。")
             return
         }
         
@@ -115,16 +117,22 @@ public class KeyboardMonitor {
         
         guard let eventTap = eventTap else {
             logger.error("イベントタップの作成に失敗しました")
+            print("イベントタップの作成に失敗しました。アクセシビリティ権限を確認してください。")
             return
         }
         
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
-        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
+        guard let runLoopSource = runLoopSource else {
+            logger.error("RunLoopSourceの作成に失敗しました")
+            return
+        }
         
+        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: eventTap, enable: true)
         
         isMonitoring = true
         logger.info("キーボード監視を開始しました")
+        print("キーボード監視を開始しました。")
     }
     
     public func stopMonitoring() {

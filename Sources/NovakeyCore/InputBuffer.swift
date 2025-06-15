@@ -33,10 +33,10 @@ public class InputBuffer {
         Task {
             do {
                 // let convertedText = try await ollamaClient.convertToJapanese(currentBuffer)
-                logger.info("to ひらがない: \(currentBuffer)")
+                logger.info("to ひらがな: \(currentBuffer)")
 
-                let convertedText = try await ollamaClient.sendLLM(currentBuffer)
-                logger.info("to 漢字: \(currentBuffer)")
+                let convertedText = try await ollamaClient.convertToKanji(currentBuffer)
+                logger.info("to 漢字: \(convertedText)")
                 
             } catch {
                 logger.error("変換に失敗しました: \(error.localizedDescription)")
