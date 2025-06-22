@@ -7,7 +7,9 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "novakey", targets: ["Novakey"])
+        .executable(name: "novakey", targets: ["Novakey"]),
+        .executable(name: "novakey-input-method", targets: ["NovakeyInputMethodApp"]),
+        .library(name: "NovakeyInputMethod", targets: ["NovakeyInputMethod"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.3"),
@@ -28,9 +30,20 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log")
             ]
         ),
-        .testTarget(
-            name: "NovakeyTests",
-            dependencies: ["NovakeyCore"]
+        .target(
+            name: "NovakeyInputMethod",
+            dependencies: [
+                "NovakeyCore",
+                .product(name: "Logging", package: "swift-log")
+            ]
+        ),
+        .executableTarget(
+            name: "NovakeyInputMethodApp",
+            dependencies: [
+                "NovakeyCore",
+                "NovakeyInputMethod",
+                .product(name: "Logging", package: "swift-log")
+            ]
         )
     ]
 ) 
